@@ -18,6 +18,24 @@ opsentry verify    # Verify installation
 opsentry status    # Check version and update availability
 ```
 
+## Versioning
+
+The `VERSION` file and `vX.Y.Z` tags in this repository track the **tap**, not OpSentry
+itself. The OpSentry release a given formula installs is recorded in
+[CHANGELOG.md](CHANGELOG.md) and set by the `url` in
+[`Formula/opsentry.rb`](Formula/opsentry.rb).
+
+To see which version you have installed:
+
+```bash
+opsentry --version
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branching model, versioning rules, and how
+to bump the packaged OpSentry version.
+
 ## Links
 
 - [OpSentry](https://github.com/opsight-intelligence/opsentry) — Main repo
