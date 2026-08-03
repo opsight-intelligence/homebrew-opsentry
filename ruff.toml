@@ -1,0 +1,11 @@
+# Pinned so a local run and CI agree. Without a config in this repo, ruff falls
+# back to whatever config it discovers by walking up from the checkout, which
+# differs between a laptop and a runner -- lint that passes in one place and
+# fails in the other is worse than no lint.
+#
+# Matches the org convention used across the opsight repos.
+line-length = 79
+target-version = "py310"
+
+[lint]
+select = ["E4", "E7", "E9", "F", "I"]

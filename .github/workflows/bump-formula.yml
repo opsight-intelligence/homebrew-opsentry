@@ -1,0 +1,177 @@
+# Keep the formula in step with OpSentry releases.
+#
+# Why this exists: releasing opsentry does not touch this tap, so the formula
+# went three releases stale (v1.8.0 while the source shipped v1.8.3) and
+# `brew install opsentry` served older guardrails than `git clone` did. It then
+# went stale AGAIN within the hour of being fixed by hand, which is what settled
+# the argument for automating it.
+#
+# Runs here rather than in the opsentry repo on purpose: a workflow in its own
+# repository can open a pull request with the default GITHUB_TOKEN, whereas
+# pushing from opsentry would need a cross-repo PAT -- one more credential to
+# rotate, and one more thing to expire silently.
+#
+# It opens a PR rather than pushing. This file decides what every `brew install`
+# downloads; a human should see that change.
+
+name: bump-formula
+
+on:
+  schedule:
+    # Daily, after the nightly window when releases tend to land.
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: develop
+
+      - name: Compare the formula against the newest OpSentry tag
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+
+          # `|| true` on each: under `pipefail` a grep that matches nothing kills
+          # the step, and a bare "Process exited with code 1" says far less than
+          # the explicit checks below.
+          latest=$(gh api "repos/${OWNER}/opsentry/tags" --paginate --jq '.[].name' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1) || true
+          current=$(grep -oE 'tags/v[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz' Formula/opsentry.rb \
+            | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true
+
+          if [ -z "$latest" ]; then
+            echo "::error::no semver tag found in ${OWNER}/opsentry"
+            exit 1
+          fi
+          if [ -z "$current" ]; then
+            echo "::error::could not parse the pinned version out of Formula/opsentry.rb"
+            exit 1
+          fi
+
+          echo "latest=$latest"   >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "formula=$current  opsentry=$latest"
+
+          if [ "$current" = "$latest" ]; then
+            echo "Formula already current at $current; nothing to do."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Only ever move forward. If the formula somehow pins something newer
+          # than any tag, that is a state to look at by hand, not to "fix" by
+          # silently rolling users back to an older release.
+          newest=$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -1)
+          if [ "$newest" = "$current" ]; then
+            echo "::warning::formula pins $current, newer than the newest tag $latest; leaving it alone"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "::notice::formula $current is behind opsentry $latest"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if a bump PR is already open
+        # This runs daily. Without this the same PR would be reopened every
+        # night for as long as it sat unmerged.
+        if: steps.check.outputs.changed == 'true'
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: bugfix/formula-${{ steps.check.outputs.latest }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
+            echo "::notice::$BRANCH already exists; a bump PR is open for ${{ steps.check.outputs.latest }}"
+            echo "open=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "open=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Recompute the tarball checksum
+        if: steps.check.outputs.changed == 'true' && steps.existing.outputs.open == 'false'
+        id: sha
+        env:
+          OWNER: ${{ github.repository_owner }}
+          LATEST: ${{ steps.check.outputs.latest }}
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            "https://github.com/${OWNER}/opsentry/archive/refs/tags/${LATEST}.tar.gz" \
+            -o release.tar.gz
+          # Confirm it unpacks before trusting its digest: an error page saved as
+          # .tar.gz would otherwise checksum perfectly cleanly and ship.
+          tar tzf release.tar.gz > /dev/null
+          echo "sha=$(sha256sum release.tar.gz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          rm -f release.tar.gz
+
+      - name: Update the formula, tap version and changelog
+        if: steps.check.outputs.changed == 'true' && steps.existing.outputs.open == 'false'
+        env:
+          LATEST: ${{ steps.check.outputs.latest }}
+          CURRENT: ${{ steps.check.outputs.current }}
+          SHA: ${{ steps.sha.outputs.sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/bump_formula.py \
+            --formula Formula/opsentry.rb \
+            --version-file VERSION \
+            --changelog CHANGELOG.md \
+            --current "$CURRENT" --latest "$LATEST" --sha256 "$SHA"
+
+          # Ruby is preinstalled on ubuntu runners; if that ever stops being true
+          # the syntax check is skipped rather than failing the bump.
+          if command -v ruby > /dev/null; then ruby -c Formula/opsentry.rb; fi
+
+          echo "TAP_VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
+          git --no-pager diff --stat
+
+      - name: Open the pull request
+        if: steps.check.outputs.changed == 'true' && steps.existing.outputs.open == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ steps.check.outputs.latest }}
+          CURRENT: ${{ steps.check.outputs.current }}
+        run: |
+          set -euo pipefail
+          branch="bugfix/formula-${LATEST}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add Formula/opsentry.rb VERSION CHANGELOG.md
+          git commit -m "fix(formula): bump OpSentry to ${LATEST} [v${TAP_VERSION}]"
+          git push origin "$branch"
+
+          # Body via a file, not an inline --body: a multi-line string argument
+          # has to stay indented inside this block scalar, and any line that
+          # drifts back to column 0 silently ends the scalar and breaks the
+          # whole workflow file.
+          cat > "$RUNNER_TEMP/pr-body.md" <<EOF
+          Opened automatically by \`bump-formula\`: OpSentry released
+          **${LATEST}** while this formula still pinned **${CURRENT}**.
+
+          The \`sha256\` was recomputed from the tarball GitHub serves for
+          \`${LATEST}\`, and the archive was verified to unpack before its
+          digest was taken -- an error page saved as \`.tar.gz\` would
+          otherwise checksum perfectly cleanly and ship.
+
+          Merging this changes what every \`brew install opsentry\` downloads,
+          which is why this is a pull request and not a direct push. After
+          merging, cut the tap release as usual: fast-forward \`main\` and tag
+          \`v${TAP_VERSION}\`.
+          EOF
+
+          gh pr create --base develop --head "$branch" \
+            --title "fix(formula): bump OpSentry to ${LATEST} [v${TAP_VERSION}]" \
+            --body-file "$RUNNER_TEMP/pr-body.md"

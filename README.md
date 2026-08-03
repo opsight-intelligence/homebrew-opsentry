@@ -12,10 +12,12 @@ brew install opsentry
 ## After Install
 
 ```bash
-opsentry init      # Interactive setup wizard
 opsentry install   # Install guardrails to ~/.claude/
-opsentry verify    # Verify installation
-opsentry status    # Check version and update availability
+opsentry verify    # Verify installation integrity
+opsentry update    # Pull the latest version and re-install
+opsentry patrol    # Run the compliance patrol audit
+opsentry test      # Run the hook test suite
+opsentry --version # Show the installed version
 ```
 
 ## Versioning
@@ -30,6 +32,19 @@ To see which version you have installed:
 ```bash
 opsentry --version
 ```
+
+### Keeping the formula current
+
+Releasing OpSentry does not touch this repository, so the formula used to be
+bumped by hand — and twice went stale, once by three releases. The
+[`bump-formula`](.github/workflows/bump-formula.yml) workflow now runs daily: it
+compares the newest OpSentry tag against the version this formula pins and, when
+they differ, recomputes the tarball `sha256` and opens a pull request.
+
+It opens a PR rather than pushing, because merging one changes what every
+`brew install opsentry` downloads. Review it, merge it, then cut the tap release
+as usual. To check immediately instead of waiting for the schedule, run the
+workflow from the Actions tab.
 
 ## Contributing
 
