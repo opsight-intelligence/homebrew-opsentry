@@ -9,6 +9,28 @@ Note: this version tracks the **tap**, not OpSentry itself. The OpSentry version
 given formula installs is recorded in each entry below and lives in
 [`Formula/opsentry.rb`](Formula/opsentry.rb).
 
+## [0.2.0] - 2026-08-03
+
+### Added
+- **Automated formula bumps.** A scheduled `bump-formula` workflow compares the
+  newest OpSentry tag against the version the formula pins and, when they
+  differ, recomputes the tarball `sha256` and opens a pull request. Releasing
+  OpSentry does not touch this repository, so the formula was bumped by hand and
+  twice went stale — once by three releases, and once within the hour of being
+  corrected. It opens a PR rather than pushing, because merging one changes what
+  every `brew install opsentry` downloads.
+- **CI.** This tap had none. Every pull request now checks that the formula
+  parses as Ruby, that the bump script's tests pass, that lint is clean, and
+  that the pinned `sha256` matches the tarball the pinned `url` actually serves
+  — the last being the failure that breaks installation for every user at once.
+- `scripts/bump_formula.py`, the formula/version/changelog edits as pure,
+  tested functions rather than `sed` buried in a workflow file.
+
+### Fixed
+- `README.md` documented `opsentry init` and `opsentry status`. Neither
+  subcommand exists — the wrapper dispatches `install`, `verify`, `update`,
+  `patrol` and `test` — so both were replaced with the real command list.
+
 ## [0.1.3] - 2026-08-03
 
 ### Fixed

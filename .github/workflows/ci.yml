@@ -1,0 +1,65 @@
+# CI for the OpSentry Homebrew tap.
+#
+# Self-contained rather than calling the org's reusable workflow, for the same
+# reason the public opsentry repo is: that workflow lives in a private
+# repository, and someone reading this public tap must be able to see every step
+# that gates it.
+#
+# What this actually protects: `Formula/opsentry.rb` is what `brew install`
+# executes. A syntax error or a checksum that does not match the tarball breaks
+# installation for every user, and nothing here checked either until now.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+jobs:
+  test:
+    name: formula + bump script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Formula parses as Ruby
+        run: ruby -c Formula/opsentry.rb
+
+      - name: Bump script tests
+        run: |
+          pip install pytest==8.3.4
+          python -m pytest tests/ -q
+
+      - name: Lint
+        run: |
+          # Pinned to match the rest of the org: ruff's default rule set grows
+          # between releases, and an unpinned upgrade fails CI on a commit that
+          # changed nothing.
+          pip install ruff==0.16.1
+          ruff check scripts tests
+
+      - name: The pinned checksum matches the pinned tarball
+        # The failure this catches is the expensive one: url and sha256 are two
+        # independent lines, and a bump that updates one without the other
+        # produces a formula that passes every other check here and then fails
+        # on every user's machine with a checksum mismatch.
+        run: |
+          set -euo pipefail
+          url=$(grep -oE 'https://[^"]+\.tar\.gz' Formula/opsentry.rb)
+          want=$(grep -oE '^\s*sha256 "[0-9a-f]{64}"' Formula/opsentry.rb \
+            | grep -oE '[0-9a-f]{64}')
+          curl -fsSL "$url" -o release.tar.gz
+          tar tzf release.tar.gz > /dev/null
+          got=$(sha256sum release.tar.gz | cut -d' ' -f1)
+          if [ "$want" != "$got" ]; then
+            echo "::error::formula sha256 does not match $url"
+            echo "  formula: $want"
+            echo "  tarball: $got"
+            exit 1
+          fi
+          echo "checksum matches $url"

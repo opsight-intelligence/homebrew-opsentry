@@ -40,10 +40,35 @@ A change is not complete until all four land in the same commit:
 
 ## Bumping the packaged OpSentry version
 
+This is automated. The `bump-formula` workflow runs daily, compares the newest
+OpSentry tag against the version the formula pins, and opens a pull request with
+the new `url`, a recomputed `sha256`, a `VERSION` bump and a changelog entry.
+Review and merge it, then cut the tap release as usual. Run it from the Actions
+tab to check on demand rather than waiting for the schedule.
+
+Do it by hand only if the workflow is unavailable:
+
 1. Update `url` in `Formula/opsentry.rb` to the new upstream tag
-2. Recompute the checksum and update `sha256`
+2. Recompute the checksum and update `sha256` — **always together with the
+   `url`**. These are the two lines that must move as a pair; changing one
+   without the other yields a formula that fails on every user's machine, which
+   is the failure the automation and the CI checksum check both exist to stop.
 3. Verify locally: `brew install --build-from-source Formula/opsentry.rb && brew test opsentry`
 4. Bump `VERSION`, add the changelog entry, update `README.md` if the CLI surface changed
+
+`scripts/bump_formula.py` performs steps 1, 2 and 4 and is what the workflow
+calls; running it directly is safer than editing the formula by hand.
+
+## Tests
+
+```sh
+python -m pytest tests/ -q     # bump-script tests
+ruff check scripts tests       # lint
+ruby -c Formula/opsentry.rb    # the formula parses
+```
+
+CI runs these on every pull request, plus a check that the pinned `sha256`
+actually matches the tarball the pinned `url` serves.
 
 ## Commit messages
 
