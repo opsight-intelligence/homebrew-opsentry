@@ -9,6 +9,14 @@ Note: this version tracks the **tap**, not OpSentry itself. The OpSentry version
 given formula installs is recorded in each entry below and lives in
 [`Formula/opsentry.rb`](Formula/opsentry.rb).
 
+## [0.1.3] - 2026-08-03
+
+### Fixed
+- Bumped to OpSentry `v1.8.4`. The formula went stale again within the hour of
+  being fixed, because releasing the source repository does not touch this tap —
+  which is precisely the gap 0.1.2 described. Until the bump is automated in the
+  OpSentry release flow, every release needs a matching PR here.
+
 ## [0.1.2] - 2026-08-03
 
 ### Fixed
