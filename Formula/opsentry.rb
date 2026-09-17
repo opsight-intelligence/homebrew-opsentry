@@ -7,8 +7,8 @@
 class Opsentry < Formula
   desc "AI agent security guardrails for engineering teams"
   homepage "https://github.com/opsight-intelligence/opsentry"
-  url "https://github.com/opsight-intelligence/opsentry/archive/refs/tags/v1.8.4.tar.gz"
-  sha256 "f80e8bb8536278d3890a39b82da85957742ddaa2d93e3b7d9474586549c1e526"
+  url "https://github.com/opsight-intelligence/opsentry/archive/refs/tags/v1.8.7.tar.gz"
+  sha256 "beb281236a4447259e36149df4b693d59ec19fd7cac76a132e7c5fb558966a8f"
   license "Apache-2.0"
 
   depends_on "jq"
