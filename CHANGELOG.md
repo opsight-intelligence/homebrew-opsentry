@@ -9,6 +9,12 @@ Note: this version tracks the **tap**, not OpSentry itself. The OpSentry version
 given formula installs is recorded in each entry below and lives in
 [`Formula/opsentry.rb`](Formula/opsentry.rb).
 
+## [0.2.1] - 2026-09-17
+
+### Fixed
+- Bumped the formula to OpSentry `v1.8.7` with a recomputed `sha256`, so `brew install opsentry` serves the current release.
+  Opened automatically by the `bump-formula` workflow.
+
 ## [0.2.0] - 2026-08-03
 
 ### Added
