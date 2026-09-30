@@ -9,6 +9,16 @@ Note: this version tracks the **tap**, not OpSentry itself. The OpSentry version
 given formula installs is recorded in each entry below and lives in
 [`Formula/opsentry.rb`](Formula/opsentry.rb).
 
+## [Unreleased]
+
+## [0.2.2] - 2026-09-30
+
+### Changed
+- CONTRIBUTING describes the tap as it works: what `bump_formula.py` does and does not
+  do, that every packaged upstream release is a patch, how to test through the tap,
+  and the fast-forward release flow. `## [Unreleased]` is back at the top and every
+  release has its compare link.
+
 ## [0.2.1] - 2026-09-17
 
 ### Fixed
@@ -56,8 +66,6 @@ given formula installs is recorded in each entry below and lives in
 - Bumped to `v1.8.3` with a recomputed `sha256`
   (`c196f6cd...`, verified against the tarball GitHub serves).
 
-## [Unreleased]
-
 ## [0.1.1] - 2026-08-01
 ### Added
 - `CHANGELOG.md` and `CONTRIBUTING.md` establishing the Git Flow, semantic versioning,
@@ -86,6 +94,11 @@ given formula installs is recorded in each entry below and lives in
 ### Added
 - Initial Homebrew formula packaging OpSentry 1.7.0.
 
-[Unreleased]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.1.3...v0.2.0
+[0.1.3]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/opsight-intelligence/homebrew-opsentry/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/opsight-intelligence/homebrew-opsentry/releases/tag/v0.1.0

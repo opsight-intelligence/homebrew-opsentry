@@ -23,8 +23,10 @@ The `VERSION` file tracks the **tap**, not OpSentry. A formula bump that package
 upstream OpSentry release is a change to this tap and gets its own tap version.
 
 - **MAJOR** — breaking changes to the installed CLI surface (renamed or removed subcommands)
-- **MINOR** — packaging a new upstream OpSentry minor/major, new subcommands, new dependencies
-- **PATCH** — upstream patch bumps, resource refreshes, checksum corrections, docs
+- **MINOR** — new subcommands or new dependencies in the formula
+- **PATCH** — packaging a new upstream OpSentry release (the `bump-formula` workflow
+  always files it as a patch, whatever the upstream bump), resource refreshes,
+  checksum corrections, docs
 
 Every commit bumps `VERSION`. Releases that land on `main` are tagged `v<version>`.
 
@@ -53,11 +55,16 @@ Do it by hand only if the workflow is unavailable:
    `url`**. These are the two lines that must move as a pair; changing one
    without the other yields a formula that fails on every user's machine, which
    is the failure the automation and the CI checksum check both exist to stop.
-3. Verify locally: `brew install --build-from-source Formula/opsentry.rb && brew test opsentry`
+3. Verify locally through the tap, not a file path (recent Homebrew refuses to
+   install a formula from a bare path):
+   `brew tap opsight-intelligence/opsentry "$PWD"` once, then
+   `brew reinstall --build-from-source opsight-intelligence/opsentry/opsentry && brew test opsentry`
 4. Bump `VERSION`, add the changelog entry, update `README.md` if the CLI surface changed
 
-`scripts/bump_formula.py` performs steps 1, 2 and 4 and is what the workflow
-calls; running it directly is safer than editing the formula by hand.
+`scripts/bump_formula.py` is what the workflow calls. Given the new tag and its
+`--sha256` (it does not download or hash the tarball itself), it moves `url` and
+`sha256` together, bumps `VERSION` and adds the changelog entry; it does not touch
+`README.md`. Running it directly is still safer than editing the formula by hand.
 
 ## Tests
 
@@ -88,9 +95,11 @@ Examples:
 
 ## Releasing
 
-1. Cut `release/<version>` from `develop`
-2. Roll `## [Unreleased]` into a `## [<version>] - <YYYY-MM-DD>` section
-3. Open a PR into `main`, merge, then tag `v<version>`
-4. Merge `main` back into `develop`
-5. Delete the release branch locally and on the remote, and close any PRs the release
+1. Merge the change's PR into `develop` (its commit already carries the version and
+   the changelog section; roll anything left under `## [Unreleased]` into it)
+2. Fast-forward `main` to `develop` and tag `v<version>` — the flow since v0.2.0 and
+   what the `bump-formula` PR body asks for. A `release/<version>` branch PR'd into
+   `main` and merged back (how v0.1.1-v0.1.3 shipped) is still fine for a release
+   that bundles several changes
+3. Delete the work branch locally and on the remote, and close any PRs the release
    supersedes
