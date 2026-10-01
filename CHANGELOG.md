@@ -11,6 +11,12 @@ given formula installs is recorded in each entry below and lives in
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-01
+
+### Fixed
+- Bumped the formula to OpSentry `v1.8.9` with a recomputed `sha256`, so `brew install opsentry` serves the current release.
+  Opened automatically by the `bump-formula` workflow.
+
 ## [0.2.2] - 2026-09-30
 
 ### Changed
