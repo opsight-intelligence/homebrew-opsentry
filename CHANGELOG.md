@@ -11,6 +11,13 @@ given formula installs is recorded in each entry below and lives in
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-11-17
+
+### Added
+- `LICENSE`: the tap is Apache-2.0, the same licence and text as OpSentry itself; until now
+  it carried none.
+- `.github/CODEOWNERS` naming the maintainer as owner of every path.
+
 ## [0.2.3] - 2026-10-01
 
 ### Fixed
